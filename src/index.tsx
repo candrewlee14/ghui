@@ -123,30 +123,25 @@ process.on("SIGUSR2", () => {
 })
 
 const Bootstrap = () => {
-	console.error("[DIAG] Bootstrap render")
 	const [appBundle, setAppBundle] = useState<AppBundle | null>(null)
 	const [bootHint, setBootHint] = useState("Starting ghui")
 	const [systemThemeGeneration, setSystemThemeGeneration] = useState(0)
 
 	useEffect(() => {
-		console.error("[DIAG] Bootstrap useEffect start")
 		let cancelled = false
 		notifySystemThemeReload = () => setSystemThemeGeneration((current) => current + 1)
 		const timer = globalThis.setTimeout(() => {
-			console.error("[DIAG] Bootstrap timer firing")
 			setBootHint("Registering syntax parsers")
 			try {
 				addGhUiParsers()
 			} catch (e) {
-				console.error("[DIAG] addGhUiParsers failed:", e)
+				// Ignore syntax parser loading error in minimal mock environment
 			}
 
-			console.error("[DIAG] setAppBundle")
 			setAppBundle({ RegistryProvider, App })
 		}, 0)
 
 		return () => {
-			console.error("[DIAG] Bootstrap useEffect cleanup")
 			cancelled = true
 			notifySystemThemeReload = () => {}
 			globalThis.clearTimeout(timer)
@@ -154,7 +149,6 @@ const Bootstrap = () => {
 	}, [])
 
 	if (appBundle) {
-		console.error("[DIAG] Bootstrap rendering AppBundle")
 		const { RegistryProvider, App } = appBundle
 		return (
 			<RegistryProvider>
@@ -163,7 +157,6 @@ const Bootstrap = () => {
 		)
 	}
 
-	console.error("[DIAG] Bootstrap rendering StartupLogo")
 	return <StartupLogo hint={bootHint} />
 }
 

@@ -19,9 +19,7 @@ interface AppProps {
  * consumes the shell bundle.
  */
 export const App = ({ systemThemeGeneration = 0 }: AppProps) => {
-	console.error("[DIAG] App component start")
 	const shell = useAppShell({ systemThemeGeneration })
-	console.error("[DIAG] App shell evaluated, tooSmall:", shell.terminalTooSmall, "loading:", shell.isInitialLoading, "w:", shell.terminalWidth, "h:", shell.terminalHeight)
 
 	if (shell.terminalTooSmall) {
 		const lines = ["Terminal too small", `Need 60x16; current ${shell.terminalWidth}x${shell.terminalHeight}`, "Resize to continue"]
