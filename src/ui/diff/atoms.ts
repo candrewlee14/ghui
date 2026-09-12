@@ -15,7 +15,7 @@ import {
 	pullRequestDiffKey,
 } from "../diff.js"
 
-export const initialDiffWhitespaceMode = await Effect.runPromise(loadStoredDiffWhitespaceMode)
+export const initialDiffWhitespaceMode: DiffWhitespaceMode = "ignore"
 
 // === UI state atoms ===
 export const diffFullViewAtom = Atom.make(false)

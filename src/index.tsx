@@ -3,8 +3,9 @@
 import { addDefaultParsers, createCliRenderer } from "@opentui/core"
 import { createRoot, useRenderer, useTerminalDimensions } from "@opentui/react"
 import { Effect } from "effect"
-import { appendFile } from "node:fs/promises"
 import { useEffect, useState } from "react"
+import { RegistryProvider } from "@effect/atom-react"
+import { App } from "./App.js"
 import { errorMessage } from "./errors.js"
 import { createSystemThemeReloader, type SystemThemeReloadEvent } from "./systemThemeReload.js"
 import { setTuiSuspender } from "./tuiSuspension.js"
@@ -74,7 +75,11 @@ const renderer = await createCliRenderer({
 	externalOutputMode: "passthrough",
 	onDestroy: () => {
 		process.stdout.write(FOCUS_REPORTING_DISABLE)
-		process.exit(0)
+		if (typeof process.exit === "function") {
+			process.exit(0)
+		} else {
+			process.kill(process.pid, "SIGINT")
+		}
 	},
 })
 
@@ -118,32 +123,30 @@ process.on("SIGUSR2", () => {
 })
 
 const Bootstrap = () => {
+	console.error("[DIAG] Bootstrap render")
 	const [appBundle, setAppBundle] = useState<AppBundle | null>(null)
 	const [bootHint, setBootHint] = useState("Starting ghui")
 	const [systemThemeGeneration, setSystemThemeGeneration] = useState(0)
 
 	useEffect(() => {
+		console.error("[DIAG] Bootstrap useEffect start")
 		let cancelled = false
 		notifySystemThemeReload = () => setSystemThemeGeneration((current) => current + 1)
 		const timer = globalThis.setTimeout(() => {
+			console.error("[DIAG] Bootstrap timer firing")
 			setBootHint("Registering syntax parsers")
-			addGhUiParsers()
+			try {
+				addGhUiParsers()
+			} catch (e) {
+				console.error("[DIAG] addGhUiParsers failed:", e)
+			}
 
-			setBootHint("Loading ghui app")
-			void Promise.all([import("@effect/atom-react"), import("./App.js")]).then(
-				([{ RegistryProvider }, { App }]) => {
-					if (cancelled) return
-					setBootHint("Mounting ghui app")
-					setAppBundle({ RegistryProvider, App })
-				},
-				(error) => {
-					if (cancelled) return
-					setBootHint(errorMessage(error))
-				},
-			)
+			console.error("[DIAG] setAppBundle")
+			setAppBundle({ RegistryProvider, App })
 		}, 0)
 
 		return () => {
+			console.error("[DIAG] Bootstrap useEffect cleanup")
 			cancelled = true
 			notifySystemThemeReload = () => {}
 			globalThis.clearTimeout(timer)
@@ -151,6 +154,7 @@ const Bootstrap = () => {
 	}, [])
 
 	if (appBundle) {
+		console.error("[DIAG] Bootstrap rendering AppBundle")
 		const { RegistryProvider, App } = appBundle
 		return (
 			<RegistryProvider>
@@ -159,6 +163,7 @@ const Bootstrap = () => {
 		)
 	}
 
+	console.error("[DIAG] Bootstrap rendering StartupLogo")
 	return <StartupLogo hint={bootHint} />
 }
 

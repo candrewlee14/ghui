@@ -1,4 +1,3 @@
-import { homedir } from "node:os"
 import { join } from "node:path"
 import { Config, Effect } from "effect"
 
@@ -6,7 +5,7 @@ const positiveIntOr = (fallback: number) => (value: number) => (Number.isFinite(
 
 const pageSizeOr = (fallback: number) => (value: number) => Math.min(100, positiveIntOr(fallback)(value))
 
-const defaultCachePath = () => join(process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache"), "ghui", "cache.sqlite")
+const defaultCachePath = () => join(process.env.XDG_CACHE_HOME ?? join(process.env.HOME ?? "/tmp", ".cache"), "ghui", "cache.sqlite")
 
 const resolveCachePath = () => {
 	const value = process.env.GHUI_CACHE_PATH?.trim()

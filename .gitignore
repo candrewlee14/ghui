@@ -22,3 +22,7 @@ coverage/
 
 # local mock snapshots
 .ghui/
+
+# local tooling
+.kiln/
+.scratch/

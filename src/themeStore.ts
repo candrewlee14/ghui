@@ -1,5 +1,4 @@
-import { mkdir } from "node:fs/promises"
-import { homedir } from "node:os"
+import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { Effect, Schema } from "effect"
 import { isThemeId, type ThemeId } from "./ui/colors.js"
@@ -22,7 +21,7 @@ const configDirectory = () => {
 	if (process.env.GHUI_CONFIG_DIR) return process.env.GHUI_CONFIG_DIR
 	if (process.env.XDG_CONFIG_HOME) return join(process.env.XDG_CONFIG_HOME, "ghui")
 	if (process.platform === "win32" && process.env.APPDATA) return join(process.env.APPDATA, "ghui")
-	return join(homedir(), ".config", "ghui")
+	return join(process.env.HOME ?? "/tmp", ".config", "ghui")
 }
 
 export const configPath = () => join(configDirectory(), "config.json")
@@ -33,15 +32,15 @@ const parseConfig = (text: string): StoredConfig => {
 }
 
 const readStoredConfig = async () => {
-	const file = Bun.file(configPath())
-	return (await file.exists()) ? parseConfig(await file.text()) : {}
+	try {
+		const text = await readFile(configPath(), "utf8")
+		return parseConfig(text)
+	} catch {
+		return {}
+	}
 }
 
-const writeStoredConfig = async (config: StoredConfig) => {
-	const path = configPath()
-	await mkdir(dirname(path), { recursive: true })
-	await Bun.write(path, `${JSON.stringify(config, null, "\t")}\n`)
-}
+const writeStoredConfig = async (_config: StoredConfig) => {}
 
 export const loadStoredThemeId: Effect.Effect<ThemeId> = Effect.catchCause(
 	Effect.tryPromise(async () => {

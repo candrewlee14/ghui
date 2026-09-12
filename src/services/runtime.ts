@@ -9,6 +9,7 @@ import { Clipboard } from "./Clipboard.js"
 import { EditorOpener } from "./EditorOpener.js"
 import { CommandRunner } from "./CommandRunner.js"
 import { GitHubService } from "./GitHubService.js"
+import { MockGitHubService } from "./MockGitHubService.js"
 
 const parseOptionalPositiveInt = (value: string | undefined, fallback: number | null) => {
 	if (value === undefined) return fallback
@@ -16,8 +17,8 @@ const parseOptionalPositiveInt = (value: string | undefined, fallback: number | 
 	return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
 }
 
-export const mockPrCount = parseOptionalPositiveInt(process.env.GHUI_MOCK_PR_COUNT, null)
-export const mockRepository = process.env.GHUI_MOCK_REPOSITORY?.trim() || null
+export const mockPrCount = parseOptionalPositiveInt(process.env.GHUI_MOCK_PR_COUNT, 200)
+export const mockRepository = process.env.GHUI_MOCK_REPOSITORY?.trim() || "anomalyco/opencode"
 export const detectedRepository = mockPrCount === null ? detectCurrentGitHubRepository() : mockRepository
 export const mockUsername = process.env.GHUI_MOCK_USERNAME?.trim() || (mockPrCount !== null ? "kitlangton" : undefined)
 
@@ -44,7 +45,7 @@ export const pullRequestPageSize = Math.min(100, parseOptionalPositiveInt(proces
 
 const githubServiceLayer =
 	mockPrCount !== null
-		? (await import("./MockGitHubService.js")).MockGitHubService.layer({
+		? MockGitHubService.layer({
 				prCount: mockPrCount,
 				repoCount: parseOptionalPositiveInt(process.env.GHUI_MOCK_REPO_COUNT, 4) ?? 4,
 				repository: mockRepository,
