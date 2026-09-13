@@ -829,19 +829,39 @@ const liveCacheService = (sql: SqlClient.SqlClient) => {
 	}
 }
 
-let sqliteBunPromise: Promise<typeof import("@effect/sql-sqlite-bun") | null> | null = null
-const getSqliteBun = () => {
-	if (sqliteBunPromise === null) {
-		sqliteBunPromise = (async () => {
-			if (typeof Bun === "undefined") return null
+interface SqliteAdapter {
+	readonly SqliteClient: {
+		readonly layer: (options: { readonly filename: string }) => Layer.Layer<SqlClient.SqlClient, SqlError>
+	}
+	readonly SqliteMigrator: {
+		readonly run: (options: {
+			readonly loader: Migrator.Loader<SqlClient.SqlClient>
+			readonly table: string
+		}) => Effect.Effect<void, Migrator.MigrationError | SqlError, SqlClient.SqlClient>
+	}
+}
+
+let sqliteAdapterPromise: Promise<SqliteAdapter | null> | null = null
+const getSqliteAdapter = () => {
+	if (sqliteAdapterPromise === null) {
+		sqliteAdapterPromise = (async () => {
+			if (typeof Bun !== "undefined") {
+				try {
+					const mod = await import("@effect/sql-sqlite-bun")
+					return mod as unknown as SqliteAdapter
+				} catch {
+					// fall through
+				}
+			}
 			try {
-				return await import("@effect/sql-sqlite-bun")
+				const mod = await import("@effect/sql-sqlite-node")
+				return mod as unknown as SqliteAdapter
 			} catch {
 				return null
 			}
 		})()
 	}
-	return sqliteBunPromise
+	return sqliteAdapterPromise
 }
 
 export class CacheService extends Context.Service<
@@ -900,18 +920,18 @@ export class CacheService extends Context.Service<
 					try: () => mkdir(dirname(filename), { recursive: true }),
 					catch: (cause) => new CacheError({ operation: "createCacheDirectory", cause }),
 				})
-				const sqliteBun = yield* Effect.tryPromise({
-					try: () => getSqliteBun(),
+				const sqliteAdapter = yield* Effect.tryPromise({
+					try: () => getSqliteAdapter(),
 					catch: (cause) => new CacheError({ operation: "loadSqliteModule", cause }),
 				})
-				if (!sqliteBun) {
+				if (!sqliteAdapter) {
 					return CacheService.disabledLayer
 				}
-				const sqlLayer = sqliteBun.SqliteClient.layer({ filename })
+				const sqlLayer = sqliteAdapter.SqliteClient.layer({ filename })
 				const setupLayer = Layer.effectDiscard(
 					Effect.gen(function* () {
 						yield* applyPragmas
-						yield* sqliteBun.SqliteMigrator.run({ loader: Migrator.fromRecord(cacheMigrations), table: "ghui_cache_migrations" })
+						yield* sqliteAdapter.SqliteMigrator.run({ loader: Migrator.fromRecord(cacheMigrations), table: "ghui_cache_migrations" })
 					}),
 				)
 				return Layer.mergeAll(setupLayer, CacheService.layerSqlite).pipe(Layer.provide(sqlLayer))
