@@ -1,11 +1,20 @@
+import { homedir } from "node:os"
 import { join } from "node:path"
 import { Config, Effect } from "effect"
+
+const resolveHomeDir = () => {
+	try {
+		return homedir()
+	} catch {
+		return process.env.HOME ?? "/tmp"
+	}
+}
 
 const positiveIntOr = (fallback: number) => (value: number) => (Number.isFinite(value) && value > 0 ? value : fallback)
 
 const pageSizeOr = (fallback: number) => (value: number) => Math.min(100, positiveIntOr(fallback)(value))
 
-const defaultCachePath = () => join(process.env.XDG_CACHE_HOME ?? join(process.env.HOME ?? "/tmp", ".cache"), "ghui", "cache.sqlite")
+const defaultCachePath = () => join(process.env.XDG_CACHE_HOME ?? join(resolveHomeDir(), ".cache"), "ghui", "cache.sqlite")
 
 const resolveCachePath = () => {
 	const value = process.env.GHUI_CACHE_PATH?.trim()

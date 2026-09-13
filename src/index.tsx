@@ -3,10 +3,10 @@
 import { addDefaultParsers, createCliRenderer } from "@opentui/core"
 import { createRoot, useRenderer, useTerminalDimensions } from "@opentui/react"
 import { Effect } from "effect"
+import { appendFile } from "node:fs/promises"
 import { useEffect, useState } from "react"
 import { RegistryProvider } from "@effect/atom-react"
 import { App } from "./App.js"
-import { errorMessage } from "./errors.js"
 import { createSystemThemeReloader, type SystemThemeReloadEvent } from "./systemThemeReload.js"
 import { setTuiSuspender } from "./tuiSuspension.js"
 import { loadStoredSystemThemeAutoReload } from "./themeStore.js"
@@ -134,10 +134,11 @@ const Bootstrap = () => {
 			setBootHint("Registering syntax parsers")
 			try {
 				addGhUiParsers()
-			} catch (e) {
+			} catch {
 				// Ignore syntax parser loading error in minimal mock environment
 			}
 
+			if (cancelled) return
 			setAppBundle({ RegistryProvider, App })
 		}, 0)
 

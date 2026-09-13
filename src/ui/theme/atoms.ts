@@ -5,9 +5,11 @@ import { resolveThemeId, type ThemeConfig } from "../../themeConfig.js"
 import { loadStoredShowScrollbars, loadStoredThemeConfig } from "../../themeStore.js"
 import { setActiveTheme, type ThemeId, type ThemeTone } from "../colors.js"
 
-const initialConfig: ThemeConfig = {}
-const initialAppearance: ThemeTone = "dark"
-const initialShowScrollbars = false
+const [initialConfig, initialAppearance, initialShowScrollbars] = await Promise.all([
+	Effect.runPromise(loadStoredThemeConfig),
+	detectSystemAppearance(),
+	Effect.runPromise(loadStoredShowScrollbars),
+])
 const initialId = resolveThemeId(initialConfig, initialAppearance)
 
 // Mutates the shared theme registry so any module that reads colors.* during

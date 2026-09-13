@@ -829,6 +829,21 @@ const liveCacheService = (sql: SqlClient.SqlClient) => {
 	}
 }
 
+let sqliteBunPromise: Promise<typeof import("@effect/sql-sqlite-bun") | null> | null = null
+const getSqliteBun = () => {
+	if (sqliteBunPromise === null) {
+		sqliteBunPromise = (async () => {
+			if (typeof Bun === "undefined") return null
+			try {
+				return await import("@effect/sql-sqlite-bun")
+			} catch {
+				return null
+			}
+		})()
+	}
+	return sqliteBunPromise
+}
+
 export class CacheService extends Context.Service<
 	CacheService,
 	{
@@ -878,8 +893,30 @@ export class CacheService extends Context.Service<
 		}),
 	)
 
-	static readonly layerSqliteFile = (_filename: string): Layer.Layer<CacheService, SqlError | Migrator.MigrationError | CacheError> => {
-		return CacheService.disabledLayer as any
+	static readonly layerSqliteFile = (filename: string): Layer.Layer<CacheService, SqlError | Migrator.MigrationError | CacheError> => {
+		return Layer.unwrap(
+			Effect.gen(function* () {
+				yield* Effect.tryPromise({
+					try: () => mkdir(dirname(filename), { recursive: true }),
+					catch: (cause) => new CacheError({ operation: "createCacheDirectory", cause }),
+				})
+				const sqliteBun = yield* Effect.tryPromise({
+					try: () => getSqliteBun(),
+					catch: (cause) => new CacheError({ operation: "loadSqliteModule", cause }),
+				})
+				if (!sqliteBun) {
+					return CacheService.disabledLayer
+				}
+				const sqlLayer = sqliteBun.SqliteClient.layer({ filename })
+				const setupLayer = Layer.effectDiscard(
+					Effect.gen(function* () {
+						yield* applyPragmas
+						yield* sqliteBun.SqliteMigrator.run({ loader: Migrator.fromRecord(cacheMigrations), table: "ghui_cache_migrations" })
+					}),
+				)
+				return Layer.mergeAll(setupLayer, CacheService.layerSqlite).pipe(Layer.provide(sqlLayer))
+			}),
+		)
 	}
 
 	static readonly layerFromPath = (filename: string | null): Layer.Layer<CacheService> =>

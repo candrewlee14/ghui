@@ -17,8 +17,8 @@ const parseOptionalPositiveInt = (value: string | undefined, fallback: number | 
 	return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
 }
 
-export const mockPrCount = parseOptionalPositiveInt(process.env.GHUI_MOCK_PR_COUNT, 200)
-export const mockRepository = process.env.GHUI_MOCK_REPOSITORY?.trim() || "anomalyco/opencode"
+export const mockPrCount = parseOptionalPositiveInt(process.env.GHUI_MOCK_PR_COUNT, null)
+export const mockRepository = process.env.GHUI_MOCK_REPOSITORY?.trim() || null
 export const detectedRepository = mockPrCount === null ? detectCurrentGitHubRepository() : mockRepository
 export const mockUsername = process.env.GHUI_MOCK_USERNAME?.trim() || (mockPrCount !== null ? "kitlangton" : undefined)
 

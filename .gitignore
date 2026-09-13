@@ -26,3 +26,4 @@ coverage/
 # local tooling
 .kiln/
 .scratch/
+/ghui

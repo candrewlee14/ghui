@@ -16,7 +16,7 @@ import {
 	pullRequestDiffKey,
 } from "../diff.js"
 
-export const initialDiffWhitespaceMode: DiffWhitespaceMode = "ignore"
+export const initialDiffWhitespaceMode = await Effect.runPromise(loadStoredDiffWhitespaceMode)
 
 // === UI state atoms ===
 export const diffFullViewAtom = Atom.make(false)
@@ -40,7 +40,6 @@ export const diffCommentRangeStartIndexAtom = Atom.make<number | null>(null)
 export const diffCommentThreadsAtom = Atom.make<Record<string, readonly PullRequestReviewComment[]>>({}).pipe(Atom.keepAlive)
 export const diffCommentsLoadedAtom = Atom.make<Record<string, "loading" | "ready">>({}).pipe(Atom.keepAlive)
 export const pullRequestDiffCacheAtom = Atom.make<Record<string, PullRequestDiffState>>({}).pipe(Atom.keepAlive)
-
 
 // Diff and review-comment requests are keyed by PR revision so concurrent
 // HOME prefetches have distinct Effect lifetimes and result channels.

@@ -14,6 +14,9 @@ export const readWorkspacePreferencesFile = (path: string, viewer: ViewerId): Ef
 		}
 	}).pipe(Effect.catchCause(() => Effect.succeed(null)))
 
-export const writeWorkspacePreferencesFile = (_path: string, _input: WorkspacePreferencesInput | WorkspacePreferences): Effect.Effect<void> =>
-	Effect.void
-
+export const writeWorkspacePreferencesFile = (path: string, input: WorkspacePreferencesInput | WorkspacePreferences): Effect.Effect<void> =>
+	Effect.tryPromise(async () => {
+		const preferences = input instanceof WorkspacePreferences ? input : new WorkspacePreferences(input)
+		await mkdir(dirname(path), { recursive: true })
+		await writeFile(path, `${JSON.stringify(preferences, null, "\t")}\n`, "utf8")
+	}).pipe(Effect.catchCause(() => Effect.void))
